@@ -1,0 +1,64 @@
+getwd()
+setwd("E:/EBAC 2019/Modules/Management of Business Analytics Project/Data Analytics Process and Best Practices/Day2/Day 2 Assignment")
+
+member.data <- read.csv("Member Data.csv",check.names = F)
+
+session.data <- read.csv("Session Data.csv", check.names = F)
+
+head(session.data)
+head(member.data,6)
+
+mean.height.male <- member.data %>%
+  group_by(Gender) %>%
+  summarise_if(is.numeric,mean,na.rm = T)
+
+mean.height.male[,c("Gender","Height","Weight")]
+
+
+ggplot(member.data,aes(as.factor(Gender),Height))+geom_boxplot()
+
+# 1/4 - 3/4 value for Female is between 150 - 160 
+# 1/4 - 3/4 value for Male is between 165 - 177
+
+ggplot(member.data,aes(as.factor(Gender),Weight))+geom_boxplot()
+# 1/4 - 3/4 value for Female is between 50 - 70
+# 1/4 - 3/4 value for Male is between 60 - 88
+
+# Check for missing value
+member.data[member.data$Gender=='' & member.data$Height>150 & member.data$Height < 160,"Gender"] <- "F"
+
+member.data[member.data$Gender=='',]
+
+member.data[member.data$Gender == '' & member.data$Height > 165 ,"Gender"] <- "M"
+
+colMeans(is.na(member.data))
+
+install.packages("UsingR")
+
+ggplot()+
+  geom_point(data=member.data[member.data$Gender == 'M',],aes(x=Height,y=Weight))
+
+ggplot()+
+  geom_point(data=member.data[member.data$Gender == 'F',],aes(x=Height,y=Weight))+
+  lm(formula = member.data$Height ~ member.data$Weight)
+
+
+member.data.male <- member.data[member.data$Gender == 'M',]
+lm(formula = member.data.male$Height ~ member.data.male$Weight)
+#height = 158.6297 + 0.1734*weight 
+#weight = (height - 158.6297)/0.1734
+
+lm(formula = member.data.male$Weight ~ member.data.male$Height)
+# Weight = 0.8776*Height - 77.2241
+
+#Heught Missing data number is 5,23,77,120 
+member.data[c(5,23,77,120),]
+
+member.data[is.na(member.data$Height) & member.data$Gender == 'M','Height'] <- round(0.8776*member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Height']-77.2241)
+
+
+member.data[is.na(member.data$Weight) & member.data$Gender == 'M',]
+# missing data number is 8, 105, 119
+member.data[c(8,105,119),]
+# Seems this way is not correct, need to redo. 
+member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Weight'] <- round((member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Height'] - 158.6297)/0.1734)

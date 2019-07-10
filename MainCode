@@ -43,22 +43,28 @@ ggplot()+
   lm(formula = member.data$Height ~ member.data$Weight)
 
 
+# Fill in missing Height and Weight fot Male 
 member.data.male <- member.data[member.data$Gender == 'M',]
-lm(formula = member.data.male$Height ~ member.data.male$Weight)
-#height = 158.6297 + 0.1734*weight 
-#weight = (height - 158.6297)/0.1734
 
+?or
+# Find Male missing Height
+member.data.male[is.na(member.data.male$Height),]
+# Height Missing data number is 5,23,77,120 
+member.data.male[member.data.male$MemberMobilePhone == "91313168" | member.data.male$MemberMobilePhone =="98236331" |member.data.male$MemberMobilePhone =="81251893"|member.data.male$MemberMobilePhone =="95615638",]
+# Find relationship between height and weight 
+lm(formula = member.data.male$Height ~ member.data.male$Weight)
+# height = 158.6297 + 0.1734*weight 
+
+# Fill in missing height
+member.data.male[is.na(member.data.male$Height) & member.data.male$Gender == 'M','Height'] <- round(0.1734*member.data.male[is.na(member.data.male$Height) & member.data.male$Gender == 'M','Weight']+158.6297)
+
+# Find Male missing Weight
+member.data.male[is.na(member.data.male$Weight),]
+# missing data number is 8, 105, 119
+member.data.male[member.data.male$MemberMobilePhone == "89316894" | member.data.male$MemberMobilePhone =="94159051" |member.data.male$MemberMobilePhone =="99088488",]
+# Find relationship between weight and height
 lm(formula = member.data.male$Weight ~ member.data.male$Height)
 # Weight = 0.8776*Height - 77.2241
 
-#Heught Missing data number is 5,23,77,120 
-member.data[c(5,23,77,120),]
-
-member.data[is.na(member.data$Height) & member.data$Gender == 'M','Height'] <- round(0.8776*member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Height']-77.2241)
-
-
-member.data[is.na(member.data$Weight) & member.data$Gender == 'M',]
-# missing data number is 8, 105, 119
-member.data[c(8,105,119),]
-# Seems this way is not correct, need to redo. 
-member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Weight'] <- round((member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Height'] - 158.6297)/0.1734)
+# Fill in missing value 
+member.data.male[is.na(member.data.male$Weight) & member.data.male$Gender == 'M','Weight'] <- round(member.data[is.na(member.data$Weight) & member.data$Gender == 'M','Height']*0.8776 - 77.2241)

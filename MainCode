@@ -94,24 +94,33 @@ member.data.female[is.na(member.data.female$Weight),"Weight"] <- round(member.da
 
 write.csv(member.data,"member_data_after_data_clean.csv")
 
+
+####Fill in session.data
+
+###Fix FitnessChampion
 #Reference Table (Location SessionDate SessionTime SessionType FitnessChampion)
 ChampionSketch <- session.data[!is.na(session.data$FitnessChampion),-6] %>%  #drop MobilePhone
   arrange(Location, SessionDate, SessionTime, SessionType)
 ChampionReference <- unique(ChampionSketch)
-
 #Merge Reference Table with session.data(without FitnessChampion)
 session.fixChampion<-merge(ChampionReference, session.data[,-5], by=c("Location", "SessionDate","SessionTime","SessionType"))
-session.fixChampion
 
-TimeSketch <- session.data[!is.na(session.data$SessionTime),-6] %>%
-  arrange(Location, SessionDate, SessionTime, SessionType)
+###Fix Location
+#Reference Table 
+LocationSketch <- session.fixChampion[!is.na(session.fixChampion$Location),] %>%  
+  arrange(SessionDate, SessionTime, SessionType, FitnessChampion, MemberMobilePhone)
+LocationReference <- unique(LocationSketch)
+#Merge Reference Table with session.fixChampion
+session.fixLocation<-merge(LocationReference, session.fixChampion[,-1], by=c("SessionDate","SessionTime","SessionType","FitnessChampion","MemberMobilePhone"))
+session.fixLocation<-session.fixLocation[,c(6,1,2,3,4,5)]
+
+###Fix Time
+#Reference Table
+TimeSketch <- session.fixLocation[!is.na(session.fixLocation$SessionTime),] %>%
+  arrange(Location, SessionDate, SessionType, FitnessChampion, MemberMobilePhone)
 TimeReference <- unique(TimeSketch)
+#Merge Reference Table with session.fixLocation
+session.fixTime<-merge(TimeReference, session.fixLocation[,-3], by=c("Location", "SessionDate","SessionType","FitnessChampion","MemberMobilePhone"))
+session.fixTime<-session.fixTime[,c(1,2,6,3,4,5)]
 
-session.final<-merge(TimeReference, session.fixChampion[,-3], by=c("Location", "SessionDate","FitnessChampion","SessionType"))
-
-#Check
-session.final[which(session.final$SessionTime == 'NA'),]
-session.final[which(session.final$FitnessChampion == 'NA'),]
-
-write.csv(session.final, "session_data_after_data_clean.csv")
-
+write.csv(session.fixTime, "session_data_after_data_clean.csv")

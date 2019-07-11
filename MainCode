@@ -5,9 +5,9 @@ pacman::p_load(tidyverse, rebus,IRdisplay,data.table,
 getwd()
 setwd("E:/EBAC 2019/Modules/Management of Business Analytics Project/Data Analytics Process and Best Practices/Day2/Day 2 Assignment")
 
-#member.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "MemberData")
+member.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "MemberData")
 
-#session.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "SessionData") 
+session.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "SessionData") 
 
 member.data <- read.csv("Member Data.csv",check.names = F)
 
@@ -95,12 +95,23 @@ member.data.female[is.na(member.data.female$Weight),"Weight"] <- round(member.da
 write.csv(member.data,"member_data_after_data_clean.csv")
 
 #Reference Table (Location SessionDate SessionTime SessionType FitnessChampion)
-sketch <- session.data[!is.na(session.data$FitnessChampion),-6] %>%  #drop MobilePhone
+ChampionSketch <- session.data[!is.na(session.data$FitnessChampion),-6] %>%  #drop MobilePhone
   arrange(Location, SessionDate, SessionTime, SessionType)
-reference <- unique(sketch)
+ChampionReference <- unique(ChampionSketch)
 
 #Merge Reference Table with session.data(without FitnessChampion)
-final<-merge(reference, session.data[,-5], by=c("Location", "SessionDate","SessionTime","SessionType"))
-final
-=======
->>>>>>> a1d255c253a100a94fba1de1c68423f351825c01
+session.fixChampion<-merge(ChampionReference, session.data[,-5], by=c("Location", "SessionDate","SessionTime","SessionType"))
+session.fixChampion
+
+TimeSketch <- session.data[!is.na(session.data$SessionTime),-6] %>%
+  arrange(Location, SessionDate, SessionTime, SessionType)
+TimeReference <- unique(TimeSketch)
+
+session.final<-merge(TimeReference, session.fixChampion[,-3], by=c("Location", "SessionDate","FitnessChampion","SessionType"))
+
+#Check
+session.final[which(session.final$SessionTime == 'NA'),]
+session.final[which(session.final$FitnessChampion == 'NA'),]
+
+write.csv(session.final, "session_data_after_data_clean.csv")
+

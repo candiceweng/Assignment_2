@@ -1,17 +1,13 @@
 #Now have finished Q1
 
 pacman::p_load(tidyverse, rebus,IRdisplay,data.table, 
-               stringr, lubridate, editrules)
+               stringr, lubridate, editrules,openxlsx,readxl)
 getwd()
 setwd("E:/EBAC 2019/Modules/Management of Business Analytics Project/Data Analytics Process and Best Practices/Day2/Day 2 Assignment")
 
 member.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "MemberData")
 
 session.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "SessionData") 
-
-member.data <- read.csv("Member Data.csv",check.names = F)
-
-session.data <- read.csv("Session Data.csv", check.names = F)
 
 head(session.data)
 head(member.data,6)
@@ -27,11 +23,11 @@ ggplot(member.data,aes(as.factor(Gender),Weight))+geom_boxplot()
 # 1/4 - 3/4 value for Male is between 60 - 88
 
 # Check for missing value
-member.data[member.data$Gender=='',]
+member.data[is.na(member.data$Gender),]
 # If Height is less than 165, then fill in gender as female
-member.data[member.data$Gender=='' & member.data$Height < 165,"Gender"] <- "F"
+member.data[is.na(member.data$Gender) & member.data$Height < 165,"Gender"] <- "F"
 # If Height is more than 165, then fill in gender as male 
-member.data[member.data$Gender == '' & member.data$Height > 165 ,"Gender"] <- "M"
+member.data[is.na(member.data$Gender) & member.data$Height > 165 ,"Gender"] <- "M"
 
 # Use scatter plot to see relation (x = weight and y = height) for maile and female
 ggplot()+
@@ -94,7 +90,6 @@ member.data.female[is.na(member.data.female$Weight),"Weight"] <- round(member.da
 
 write.csv(member.data,"member_data_after_data_clean.csv")
 
-
 ####Fill in session.data
 
 ###Fix FitnessChampion
@@ -124,3 +119,94 @@ session.fixTime<-merge(TimeReference, session.fixLocation[,-3], by=c("Location",
 session.fixTime<-session.fixTime[,c(1,2,6,3,4,5)]
 
 write.csv(session.fixTime, "session_data_after_data_clean.csv")
+
+# Fill in missing Dec point
+# Calculate how many point for each yoga and boxing class 
+Count.member.class <- session.data %>%
+  group_by(MemberMobilePhone,SessionType) %>%
+  summarise(count_level=n())
+# Join with session data to get december point 
+Count.member.class1 <- merge(x = Count.member.class, y = member.data, by = "MemberMobilePhone", all.x = TRUE)
+Count.member.class2 <- Count.member.class1[,c("MemberMobilePhone","SessionType","count_level","FitnessPointsDec18")]
+# According to new joined Count.member.class2 table. 
+# if less than 5, each yoga class is 5 points. after 5, each is 8 points
+# if less than 8, each boxing class is 3 points, after 8, each is 6 points.  
+
+# method to return calcualted point 
+CalculatePoint = function(x=1, y=1){
+  # x is count of yoga class and y is count of boxing class 
+  fit.points <- 0
+      if (x<=5)
+     {
+       fit.points <- fit.points+ 5*x
+     }
+     else
+      {
+         fit.points <- fit.points+ 25 + 8*(x-5)
+      }
+  if (y<=8)
+  {
+    fit.points <- fit.points + 3*y
+  }
+  else
+  {
+    fit.points <- fit.points + 24+ 6*(y-8)
+  }
+  return(fit.points)
+}
+# test above method
+CalculatePoint(7,3) #expected result should be 50
+CalculatePoint(4,5) #expected result should be 35
+CalculatePoint(0,10) #expected result should be 36
+CalculatePoint(0,9)
+
+Count.member.class.yoga <- Count.member.class2[Count.member.class2$SessionType=="Yoga",]
+Count.member.class.boxing <- Count.member.class2[Count.member.class2$SessionType=="KickBoxing",]
+colnames(Count.member.class.yoga)[colnames(Count.member.class.yoga)=="count_level"] <- "yoga_count"
+colnames(Count.member.class.boxing)[colnames(Count.member.class.boxing)=="count_level"] <- "box_count"
+
+count.member.class.point <- merge(x=Count.member.class.yoga,y=Count.member.class.boxing,by="MemberMobilePhone",all=TRUE)
+Count.member.class.new <- count.member.class.point[,c("MemberMobilePhone","yoga_count","box_count","FitnessPointsDec18.x")]
+Count.member.class.new[is.na(Count.member.class.new$yoga_count),"yoga_count"] <- 0
+Count.member.class.new[is.na(Count.member.class.new$box_count),"box_count"] <- 0
+# Calculate missing fitness points value
+for (row in 1:nrow(Count.member.class.new)){
+  point<- Count.member.class.new[row,"FitnessPointsDec18.x"] 
+  if (is.na(point))
+  {
+    Count.member.class.new[row,"FitnessPointsDec18.x"]<- CalculatePoint(Count.member.class.new[row,"yoga_count"],Count.member.class.new[row,"box_count"])
+  }
+}
+#join point from this dataset back to member.data 
+member.data.1 <- merge(x=member.data,y=Count.member.class.new,by="MemberMobilePhone",all.x = TRUE)
+# fill in empty point data with new joined point column
+for (row in 1:nrow(member.data.1)) {
+  point1<- member.data.1[row,"FitnessPointsDec18"] 
+  if(is.na(point1))
+  {
+    member.data.1[row,"FitnessPointsDec18"]<- member.data.1[row,"FitnessPointsDec18.x"]
+  }
+}
+member.data.final<- member.data.1 %>% 
+  select(-yoga_count, -box_count,-FitnessPointsDec18.x)
+
+# Q3
+# Add new BMI column 
+member.data.final$BMI <- round(member.data$Weight/((member.data$Height/100)^2),1)
+# Add new column HealthCondition
+#BMI <= 18.4 lean
+#18.5 - 23.9 fit
+#24 - 27.9 Overweight
+#>28 fat
+member.data.final$HealthCondition[member.data.final$BMI<=18.4] <- "lean"
+member.data.final$HealthCondition[member.data.final$BMI>18.4 & member.data.final$BMI<=23.9] <- "fit"
+member.data.final$HealthCondition[member.data.final$BMI>23.9 & member.data.final$BMI<=27.9] <- "over weight"
+member.data.final$HealthCondition[member.data.final$BMI>27.9] <- "fat"
+
+# Add a new variable to indicate if user is active or not 
+boxplot(member.data$FitnessPointsDec18)
+# Divided member to 3 group,  active, normal, inactive
+# Dec point<20 inactive, 20<X<60, normal, >60 active
+member.data.final$status[member.data.final$FitnessPointsDec18<=20] <- "inactive"
+member.data.final$status[member.data.final$FitnessPointsDec18>20 & member.data.final$FitnessPointsDec18<=60] <- "normal"
+member.data.final$status[member.data.final$FitnessPointsDec18>60] <- "active"

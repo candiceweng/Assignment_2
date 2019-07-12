@@ -122,7 +122,7 @@ write.csv(session.fixTime, "session_data_after_data_clean.csv")
 
 # Fill in missing Dec point
 # Calculate how many point for each yoga and boxing class 
-Count.member.class <- session.data %>%
+Count.member.class <- session.fixChampion %>%
   group_by(MemberMobilePhone,SessionType) %>%
   summarise(count_level=n())
 # Join with session data to get december point 
@@ -169,13 +169,10 @@ count.member.class.point <- merge(x=Count.member.class.yoga,y=Count.member.class
 Count.member.class.new <- count.member.class.point[,c("MemberMobilePhone","yoga_count","box_count","FitnessPointsDec18.x")]
 Count.member.class.new[is.na(Count.member.class.new$yoga_count),"yoga_count"] <- 0
 Count.member.class.new[is.na(Count.member.class.new$box_count),"box_count"] <- 0
-# Calculate missing fitness points value
+# Calculate fitness point according to rule above
 for (row in 1:nrow(Count.member.class.new)){
   point<- Count.member.class.new[row,"FitnessPointsDec18.x"] 
-  if (is.na(point))
-  {
     Count.member.class.new[row,"FitnessPointsDec18.x"]<- CalculatePoint(Count.member.class.new[row,"yoga_count"],Count.member.class.new[row,"box_count"])
-  }
 }
 #join point from this dataset back to member.data 
 member.data.1 <- merge(x=member.data,y=Count.member.class.new,by="MemberMobilePhone",all.x = TRUE)
@@ -188,9 +185,7 @@ for (row in 1:nrow(member.data.1)) {
   }
 }
 member.data.final<- member.data.1 %>% 
-  select(-yoga_count, -box_count,-FitnessPointsDec18.x)
-
-
+  select(-yoga_count, -box_count)
 
 ####Q2 Validate data ( MemberMobilePhone & FitnessPointsDec18 )
 ###Validate MemberMobilePhone in member.data
@@ -228,4 +223,3 @@ boxplot(member.data$FitnessPointsDec18)
 member.data.final$status[member.data.final$FitnessPointsDec18<=20] <- "inactive"
 member.data.final$status[member.data.final$FitnessPointsDec18>20 & member.data.final$FitnessPointsDec18<=60] <- "normal"
 member.data.final$status[member.data.final$FitnessPointsDec18>60] <- "active"
-

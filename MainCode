@@ -184,8 +184,8 @@ for (row in 1:nrow(member.data.1)) {
     member.data.1[row,"FitnessPointsDec18"]<- member.data.1[row,"FitnessPointsDec18.x"]
   }
 }
-member.data.final<- member.data.1 %>% 
-  select(-yoga_count, -box_count)
+member.data.final<- member.data.1 
+
 
 ####Q2 Validate data ( MemberMobilePhone & FitnessPointsDec18 )
 ###Validate MemberMobilePhone in member.data
@@ -223,3 +223,36 @@ boxplot(member.data$FitnessPointsDec18)
 member.data.final$status[member.data.final$FitnessPointsDec18<=20] <- "inactive"
 member.data.final$status[member.data.final$FitnessPointsDec18>20 & member.data.final$FitnessPointsDec18<=60] <- "normal"
 member.data.final$status[member.data.final$FitnessPointsDec18>60] <- "active"
+
+#Q4
+# Count the number and precentage of different status member 
+member.data.final %>%
+  group_by(status) %>%
+  summarise(count=n(),
+            percentage = n()/nrow(member.data.final)) %>%
+  ggplot(aes(x = as.factor(status),y=count))+geom_bar(stat = 'identity')
+
+# Analyze active and inactive member profile 
+member.data.final %>%
+  group_by(HealthCondition,status)%>%
+  summarise(count_level=n(),
+            percentage = n()/nrow(member.data.final)) %>%
+  ggplot(aes(x = as.factor(HealthCondition),y=percentage,fill=as.factor(status)))+geom_bar(stat = 'identity')
+
+member.data.final %>%
+  group_by(Gender,status)%>%
+  summarise(count_level=n(),
+            percentage = n()/nrow(member.data.final)) %>%
+  ggplot(aes(x = as.factor(Gender),y=percentage,fill=as.factor(status)))+geom_bar(stat = 'identity')
+
+# Analyze different profile preference on yoga and boxing. 
+member.data.final %>%
+  group_by(Gender,HealthCondition) %>%
+  summarise(count_level = sum(yoga_count)) %>%
+  ggplot(aes(x = as.factor(Gender),y = count_level,fill=as.factor(HealthCondition)))+geom_bar(stat = 'identity')
+
+member.data.final %>%
+  group_by(Gender,HealthCondition) %>%
+  summarise(count_level = sum(box_count)) %>%
+  ggplot(aes(x = as.factor(Gender),y = count_level,fill=as.factor(HealthCondition)))+geom_bar(stat = 'identity')
+

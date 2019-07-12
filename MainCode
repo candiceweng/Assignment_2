@@ -190,6 +190,24 @@ for (row in 1:nrow(member.data.1)) {
 member.data.final<- member.data.1 %>% 
   select(-yoga_count, -box_count,-FitnessPointsDec18.x)
 
+
+
+####Q2 Validate data ( MemberMobilePhone & FitnessPointsDec18 )
+###Validate MemberMobilePhone in member.data
+member.data <- read_xlsx("DABP_D2_Assignment_Data.xlsx", sheet = "MemberData")
+head(member.data[,2],10)
+#The format of Singapore Phone: First number should be 8 or 9; Length should be 8 digits
+#Grep values that do not match
+MemberMobilePhoneNotMatch <- grep("^([8|9])\\d{7}$",as.character(member.data$MemberMobilePhone),value = T, invert = T)
+MemberMobilePhoneNotMatch
+
+###Validate FitnessPointsDec18 in member.data
+#Compare origin FitnessPointsDec18 in member.data with new FitnessPointsDec18.x we calcualted
+member.data.fixFitnessPointsDec18 <- merge(x=member.data,y=Count.member.class.new,by="MemberMobilePhone",all.x = TRUE)
+head(member.data.fixFitnessPointsDec18[!is.na(member.data.fixFitnessPointsDec18$FitnessPointsDec18),],20)
+filter(member.data.fixFitnessPointsDec18[!is.na(member.data.fixFitnessPointsDec18$FitnessPointsDec18),],FitnessPointsDec18 != FitnessPointsDec18.x)
+
+
 # Q3
 # Add new BMI column 
 member.data.final$BMI <- round(member.data$Weight/((member.data$Height/100)^2),1)
@@ -210,3 +228,4 @@ boxplot(member.data$FitnessPointsDec18)
 member.data.final$status[member.data.final$FitnessPointsDec18<=20] <- "inactive"
 member.data.final$status[member.data.final$FitnessPointsDec18>20 & member.data.final$FitnessPointsDec18<=60] <- "normal"
 member.data.final$status[member.data.final$FitnessPointsDec18>60] <- "active"
+

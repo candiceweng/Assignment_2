@@ -256,3 +256,41 @@ member.data.final %>%
   summarise(count_level = sum(box_count)) %>%
   ggplot(aes(x = as.factor(Gender),y = count_level,fill=as.factor(HealthCondition)))+geom_bar(stat = 'identity')
 
+#Compare Avg Score members get per day before/after Nov
+member.data.getAvg <- mutate(member.data.final, AvgScoreBeforeNov = round(member.data.final$FitnessPointsUpToNov18 / as.numeric(difftime(as.Date('2018-11-30'), as.Date(member.data.final$MemberSince), units = "days"), units = "days"),2))
+member.data.getAvg <- mutate(member.data.getAvg, AvgScoreDec = round(member.data.getAvg$FitnessPointsDec18 / 31,2))
+member.data.getAvg$Trend[round(member.data.getAvg$AvgScoreDec, 1) == round(member.data.getAvg$AvgScoreBeforeNov, 1)] <- "remain"
+member.data.getAvg$Trend[round(member.data.getAvg$AvgScoreDec, 1) > round(member.data.getAvg$AvgScoreBeforeNov, 1)] <- "increase"
+member.data.getAvg$Trend[round(member.data.getAvg$AvgScoreDec, 1) < round(member.data.getAvg$AvgScoreBeforeNov, 1)] <- "decrease"
+
+member.data.getAvg <- mutate(member.data.getAvg, AttendanceDifference = member.data.getAvg$AvgScoreDec - member.data.getAvg$AvgScoreBeforeNov)
+
+member.data.ready <- member.data.getAvg[,c("status","AvgScoreBeforeNov","AvgScoreDec")]
+member.data.ready <- aggregate(x = member.data.ready[, 2:3], by =list(member.data.ready$status), FUN = mean)
+
+member.data.ready <- melt(member.data.ready[,c("Group.1","AvgScoreBeforeNov","AvgScoreDec")], id.vars="Group.1", variable.name = "Time", value.name = "AvgScore")
+ggplot(member.data.ready,aes(Group.1,AvgScore,fill=Time))+
+  geom_bar(stat="identity",position="dodge")
+
+
+member.data.getAvg %>%  
+  ggplot(aes(x = AttendanceDifference, y = FitnessPointsDec18, colour = status)) +
+  geom_point()
+
+member.data.getAvg %>%  
+  ggplot(aes(x = AttendanceDifference, y = BMI, colour = status)) +
+  geom_point()
+
+member.data.getAvg %>%  
+  ggplot(aes(x = AttendanceDifference, y = BMI, colour = BMI)) +
+  geom_point()
+
+TrendSummary <- summary(as.factor(member.data.getAvg$Trend))
+TrendSummary <- as.data.frame(cbind(Trend = names(TrendSummary),Freq = TrendSummary), row.names = 1:length(TrendSummary))
+TrendSummary
+x <- c(91,74,35)
+label <- c("decrease","increase","remain")
+piepercent <- round(100*x/sum(x), 1)
+piepercent <- paste(piepercent, "%", sep = "")
+pie(x,labels=piepercent, main="Trend pei chart", col=terrain.colors (length(x)))
+legend("topright",label, cex=0.8, fill=terrain.colors(length(x)))

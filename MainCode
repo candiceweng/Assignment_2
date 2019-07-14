@@ -1,7 +1,7 @@
 #Now have finished Q1
 
 pacman::p_load(tidyverse, rebus,IRdisplay,data.table, 
-               stringr, lubridate, editrules,openxlsx,readxl)
+               stringr, lubridate, editrules,openxlsx,readxl,treemap)
 getwd()
 setwd("E:/EBAC 2019/Modules/Management of Business Analytics Project/Data Analytics Process and Best Practices/Day2/Day 2 Assignment")
 
@@ -265,6 +265,14 @@ member.data.getAvg$Trend[round(member.data.getAvg$AvgScoreDec, 1) < round(member
 
 member.data.getAvg <- mutate(member.data.getAvg, AttendanceDifference = member.data.getAvg$AvgScoreDec - member.data.getAvg$AvgScoreBeforeNov)
 
+#Analyze the trend of membership participation in Dec comparing with before.
+#Treemap
+TrendSummary = member.data.getAvg %>% group_by(Trend) %>% summarise(count=n())
+treemap(TrendSummary, index=c("Trend"),vSize="count", type="index")
+
+
+#Analyze trends of participation in different status of members
+#Bar chart
 member.data.ready <- member.data.getAvg[,c("status","AvgScoreBeforeNov","AvgScoreDec")]
 member.data.ready <- aggregate(x = member.data.ready[, 2:3], by =list(member.data.ready$status), FUN = mean)
 
@@ -272,25 +280,7 @@ member.data.ready <- melt(member.data.ready[,c("Group.1","AvgScoreBeforeNov","Av
 ggplot(member.data.ready,aes(Group.1,AvgScore,fill=Time))+
   geom_bar(stat="identity",position="dodge")
 
-
+#Scatter plot
 member.data.getAvg %>%  
   ggplot(aes(x = AttendanceDifference, y = FitnessPointsDec18, colour = status)) +
   geom_point()
-
-member.data.getAvg %>%  
-  ggplot(aes(x = AttendanceDifference, y = BMI, colour = status)) +
-  geom_point()
-
-member.data.getAvg %>%  
-  ggplot(aes(x = AttendanceDifference, y = BMI, colour = BMI)) +
-  geom_point()
-
-TrendSummary <- summary(as.factor(member.data.getAvg$Trend))
-TrendSummary <- as.data.frame(cbind(Trend = names(TrendSummary),Freq = TrendSummary), row.names = 1:length(TrendSummary))
-TrendSummary
-x <- c(91,74,35)
-label <- c("decrease","increase","remain")
-piepercent <- round(100*x/sum(x), 1)
-piepercent <- paste(piepercent, "%", sep = "")
-pie(x,labels=piepercent, main="Trend pei chart", col=terrain.colors (length(x)))
-legend("topright",label, cex=0.8, fill=terrain.colors(length(x)))
